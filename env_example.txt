@@ -1,0 +1,147 @@
+# Flask应用配置
+# 运行环境：development(开发)/production(生产)
+FLASK_ENV=development
+# 调试模式：True(开发时)/False(生产时)
+FLASK_DEBUG=True
+# ⚠️ 必须更改！Flask会话加密密钥，用于保护session和cookie
+SECRET_KEY=85G4Bw5c5n8jNUXrLh4stskzTgM5G8rk
+
+# JWT令牌配置
+# ⚠️ 必须更改！JWT令牌签名密钥，用于生成和验证用户登录令牌
+JWT_SECRET_KEY=V8hWF97LG44qUAG6CTFeG0q2D8Nh1xAs
+# JWT令牌有效期（秒）：43200=12小时
+JWT_ACCESS_TOKEN_EXPIRES=43200
+
+# MySQL数据库配置 (必填 - 不再支持SQLite)
+# 数据库服务器地址
+DB_HOST=10.100.100.93
+# 数据库端口，通常为3306
+DB_PORT=3306
+# 数据库用户名
+DB_USERNAME=root
+# ⚠️ 必须设置！数据库密码
+DB_PASSWORD=root123
+# 数据库名称
+DB_NAME=dify_dev
+# 完整数据库连接URL
+DATABASE_URL=mysql+pymysql://root:root123@10.100.100.93:3306/dify_dev
+
+# 测试环境MySQL数据库配置 (可选)
+# 测试数据库服务器地址
+TEST_DB_HOST=10.100.100.93
+# 测试数据库端口
+TEST_DB_PORT=3306
+# 测试数据库用户名
+TEST_DB_USERNAME=root
+# 测试数据库密码
+TEST_DB_PASSWORD=root123
+# 测试数据库名称
+TEST_DB_NAME=dify_dev
+
+# 服务器配置
+# 服务器监听地址：0.0.0.0(所有接口)/127.0.0.1(仅本地)
+HOST=0.0.0.0
+# 服务器端口号
+PORT=5000
+
+# 日志配置
+# 日志级别：DEBUG/INFO/WARNING/ERROR
+LOG_LEVEL=INFO
+# 是否输出到控制台：True(开发)/False(生产)
+LOG_TO_STDOUT=True
+# 是否写入文件：True(推荐)
+LOG_TO_FILE=True
+# 日志文件路径
+LOG_FILE_PATH=logs/app.log
+# 单文件最大大小：10485760=10MB
+LOG_MAX_BYTES=10485760
+# 保留的备份文件数量
+LOG_BACKUP_COUNT=10
+
+# ============================================================================
+# 任务管理系统配置
+# ============================================================================
+
+# 文件上传配置
+DIFY_FILE_UPLOAD_URL=http://10.100.100.93/v1/files/upload
+
+# 标准解读配置
+DIFY_STANDARD_INTERPRETATION_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_INTERPRETATION_KEY=app-bKrSydyfStTZR8yUunUB45WC
+
+# 标准推荐配置
+DIFY_STANDARD_RECOMMENDATION_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_RECOMMENDATION_KEY=app-gUKsb6lbeIKmyDBhOrlWFDJC
+
+# 标准对比配置
+DIFY_STANDARD_COMPARISON_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_COMPARISON_KEY=app-7uW0r7P6MGyL8vO3dvhMx7u6
+
+# 标准国际化辅助配置
+DIFY_STANDARD_INTERNATIONAL_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_INTERNATIONAL_KEY=app-tioU7U6QVjNOsgnbkooNV7Ei
+
+# 标准符合性检查配置
+DIFY_STANDARD_COMPLIANCE_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_COMPLIANCE_KEY=app-Pzdk0AJUoMhrlM9TvM76OeWZ
+
+# 标准审查配置
+DIFY_STANDARD_REVIEW_URL=http://10.100.100.93/v1/workflows/run
+DIFY_STANDARD_REVIEW_KEY=app-b8MDlhQcweXlXYJoH6pRigyo
+
+# ============================================================================
+# Dify API配置 - 应用场景管理方式
+# ============================================================================
+
+# 多语言问答页面专用配置
+DIFY_MULTILINGUAL_CHAT_URL=http://10.100.100.93/v1/chat-messages
+DIFY_MULTILINGUAL_CHAT_KEY=app-rNTm2hs2XdVDFHBrHekqhjfn
+DIFY_MULTILINGUAL_CONVERSATIONS_URL=http://10.100.100.93/v1/conversations
+DIFY_MULTILINGUAL_CONVERSATIONS_KEY=app-rNTm2hs2XdVDFHBrHekqhjfn
+DIFY_MULTILINGUAL_MESSAGES_URL=http://10.100.100.93/v1/messages
+DIFY_MULTILINGUAL_MESSAGES_KEY=app-rNTm2hs2XdVDFHBrHekqhjfn
+
+# 标准查询页面专用配置
+DIFY_STANDARD_QUERY_CHAT_URL=http://10.100.100.93/v1/chat-messages
+DIFY_STANDARD_QUERY_CHAT_KEY=app-VE4onIPw6dhrFU2nH9EX6T4E
+DIFY_STANDARD_QUERY_CONVERSATIONS_URL=http://10.100.100.93/v1/conversations
+DIFY_STANDARD_QUERY_CONVERSATIONS_KEY=app-VE4onIPw6dhrFU2nH9EX6T4E
+DIFY_STANDARD_QUERY_MESSAGES_URL=http://10.100.100.93/v1/messages
+DIFY_STANDARD_QUERY_MESSAGES_KEY=app-VE4onIPw6dhrFU2nH9EX6T4E
+
+# ============================================================================
+# Neo4j图数据库配置
+# ============================================================================
+
+# Neo4j数据库连接URI
+NEO4J_URI=bolt://10.100.100.93:7687
+# Neo4j数据库用户名
+NEO4J_USER=neo4j
+# ⚠️ 必须设置！Neo4j数据库密码
+NEO4J_PASSWORD=zkk123..075
+
+# ============================================================================
+# 文件存储配置 - 可自定义存储路径
+# ============================================================================
+
+# 数据根目录 - 所有文件存储的基础目录（相对路径或绝对路径）
+# 默认值：data（项目根目录下的data文件夹）
+# 示例：/var/app_data 或 D:\AppData 或 data
+DATA_ROOT_DIR=D:\code_data
+
+# 上传文件存储目录 - 用户上传的原始文件
+# 默认值：data/uploads
+# 如果设置绝对路径，将忽略DATA_ROOT_DIR
+UPLOAD_FILES_DIR=uploads
+
+# 导出文件存储目录 - PDF、Excel、Markdown等导出文件
+# 默认值：data/exports
+# 如果设置绝对路径，将忽略DATA_ROOT_DIR
+EXPORT_FILES_DIR=exports
+
+# 临时文件目录 - 处理过程中的临时文件
+# 默认值：data/temp
+# 如果设置绝对路径，将忽略DATA_ROOT_DIR
+TEMP_FILES_DIR=temp
+
+

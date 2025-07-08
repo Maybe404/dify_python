@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务中心 - Dify代理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .task-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+        }
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-uploading { background-color: #17a2b8; color: #fff; }
+        .status-processing { background-color: #007bff; color: #fff; }
+        .status-completed { background-color: #28a745; color: #fff; }
+        .status-failed { background-color: #dc3545; color: #fff; }
+        
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background-color: #f8f9ff;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+        
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            margin: 2px 0;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: white;
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .main-content {
+            padding: 2rem;
+        }
+        
+        .stats-card {
+            background: linear-gradient(45deg, #fff, #f8f9fa);
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-3 col-lg-2 px-0">
+                <div class="sidebar">
+                    <div class="p-3">
+                        <h5 class="mb-3">
+                            <i class="bi bi-clipboard-data me-2"></i>
+                            任务中心
+                        </h5>
+                        <ul class="nav nav-pills flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" onclick="showSection('overview')">
+                                    <i class="bi bi-speedometer2 me-2"></i>概览
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" onclick="showSection('tasks')">
+                                    <i class="bi bi-list-task me-2"></i>我的任务
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" onclick="showSection('upload')">
+                                    <i class="bi bi-cloud-upload me-2"></i>上传文件
+                                </a>
+                            </li>
+                        </ul>
+                        
+                        <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+                        
+                        <h6 class="text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 1px;">任务类型</h6>
+                        <ul class="nav nav-pills flex-column" id="taskTypesList">
+                            <!-- 动态加载任务类型 -->
+                        </ul>
+                        
+                        <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+                        
+                        <a href="/" class="nav-link">
+                            <i class="bi bi-house me-2"></i>返回首页
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 主内容区域 -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    <!-- 概览部分 -->
+                    <div id="overview-section">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0">
+                                <i class="bi bi-speedometer2 me-2"></i>任务概览
+                            </h2>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary" onclick="refreshData()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>刷新
+                                </button>
+                                <button class="btn btn-primary" onclick="showSection('upload')">
+                                    <i class="bi bi-plus-lg me-1"></i>新建任务
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 统计卡片 -->
+                        <div class="row mb-4">
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-card">
+                                    <i class="bi bi-list-task text-primary" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-3 mb-1" id="totalTasks">0</h3>
+                                    <p class="text-muted mb-0">总任务数</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-card">
+                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-3 mb-1" id="completedTasks">0</h3>
+                                    <p class="text-muted mb-0">已完成</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-card">
+                                    <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-3 mb-1" id="processingTasks">0</h3>
+                                    <p class="text-muted mb-0">处理中</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-card">
+                                    <i class="bi bi-exclamation-circle text-danger" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-3 mb-1" id="failedTasks">0</h3>
+                                    <p class="text-muted mb-0">失败</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 最近任务 -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-clock-history me-2"></i>最近任务
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="recentTasksList">
+                                    <!-- 动态加载最近任务 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 任务列表部分 -->
+                    <div id="tasks-section" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0">
+                                <i class="bi bi-list-task me-2"></i>我的任务
+                            </h2>
+                            <button class="btn btn-primary" onclick="showSection('upload')">
+                                <i class="bi bi-plus-lg me-1"></i>新建任务
+                            </button>
+                        </div>
+                        
+                        <!-- 筛选器 -->
+                        <div class="filter-section">
+                            <div class="row align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label">任务状态</label>
+                                    <select class="form-select" id="statusFilter">
+                                        <option value="">全部状态</option>
+                                        <option value="pending">待处理</option>
+                                        <option value="uploading">上传中</option>
+                                        <option value="processing">处理中</option>
+                                        <option value="completed">已完成</option>
+                                        <option value="failed">失败</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">任务类型</label>
+                                    <select class="form-select" id="typeFilter">
+                                        <option value="">全部类型</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">搜索</label>
+                                    <input type="text" class="form-control" id="searchInput" placeholder="搜索任务标题...">
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                        <i class="bi bi-search me-1"></i>筛选
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 任务列表 -->
+                        <div id="tasksList">
+                            <!-- 动态加载任务列表 -->
+                        </div>
+                        
+                        <!-- 分页 -->
+                        <nav id="pagination" class="mt-4">
+                            <!-- 动态加载分页 -->
+                        </nav>
+                    </div>
+                    
+                    <!-- 文件上传部分 -->
+                    <div id="upload-section" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0">
+                                <i class="bi bi-cloud-upload me-2"></i>上传文件
+                            </h2>
+                            <button class="btn btn-outline-secondary" onclick="showSection('tasks')">
+                                <i class="bi bi-arrow-left me-1"></i>返回任务列表
+                            </button>
+                        </div>
+                        
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <form id="uploadForm">
+                                    <div class="mb-4">
+                                        <label class="form-label">选择任务类型 <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="taskTypeSelect" required>
+                                            <option value="">请选择任务类型</option>
+                                        </select>
+                                        <div class="form-text">请选择要处理的标准类型</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="form-label">上传文件 <span class="text-danger">*</span></label>
+                                        <div id="singleFileUpload">
+                                            <div class="upload-area" id="uploadArea">
+                                                <input type="file" id="fileInput" style="display: none;" accept=".pdf,.doc,.docx,.txt,.md,.json,.xml,.png,.jpg,.jpeg,.gif">
+                                                <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #6c757d;"></i>
+                                                <h5 class="mt-3 mb-2">点击或拖拽文件到此处</h5>
+                                                <p class="text-muted mb-0">
+                                                    支持 PDF、Word、文本、图片等格式<br>
+                                                    最大文件大小: 50MB
+                                                </p>
+                                            </div>
+                                            <div id="fileInfo" class="mt-3" style="display: none;">
+                                                <div class="alert alert-info">
+                                                    <i class="bi bi-file-earmark me-2"></i>
+                                                    <span id="fileName"></span>
+                                                    <span class="ms-2 text-muted">(<span id="fileSize"></span>)</span>
+                                                    <button type="button" class="btn-close float-end" onclick="clearFile()"></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 标准对比的双文件上传区域 -->
+                                        <div id="multipleFileUpload" style="display: none;">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">第一个标准文件 <span class="text-danger">*</span></label>
+                                                    <div class="upload-area" id="uploadArea1">
+                                                        <input type="file" id="fileInput1" style="display: none;" accept=".pdf,.doc,.docx,.txt,.md,.json,.xml,.png,.jpg,.jpeg,.gif">
+                                                        <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
+                                                        <h6 class="mt-2 mb-1">选择第一个文件</h6>
+                                                        <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                                                            点击或拖拽文件到此处
+                                                        </p>
+                                                    </div>
+                                                    <div id="fileInfo1" class="mt-2" style="display: none;">
+                                                        <div class="alert alert-info">
+                                                            <i class="bi bi-file-earmark me-2"></i>
+                                                            <span id="fileName1"></span>
+                                                            <span class="ms-2 text-muted">(<span id="fileSize1"></span>)</span>
+                                                            <button type="button" class="btn-close float-end" onclick="clearFile1()"></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">第二个标准文件 <span class="text-danger">*</span></label>
+                                                    <div class="upload-area" id="uploadArea2">
+                                                        <input type="file" id="fileInput2" style="display: none;" accept=".pdf,.doc,.docx,.txt,.md,.json,.xml,.png,.jpg,.jpeg,.gif">
+                                                        <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
+                                                        <h6 class="mt-2 mb-1">选择第二个文件</h6>
+                                                        <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                                                            点击或拖拽文件到此处
+                                                        </p>
+                                                    </div>
+                                                    <div id="fileInfo2" class="mt-2" style="display: none;">
+                                                        <div class="alert alert-info">
+                                                            <i class="bi bi-file-earmark me-2"></i>
+                                                            <span id="fileName2"></span>
+                                                            <span class="ms-2 text-muted">(<span id="fileSize2"></span>)</span>
+                                                            <button type="button" class="btn-close float-end" onclick="clearFile2()"></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                            <i class="bi bi-upload me-1"></i>开始上传
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>重置
+                                        </button>
+                                    </div>
+                                </form>
+                                
+                                <!-- 上传进度 -->
+                                <div id="uploadProgress" class="mt-4" style="display: none;">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <strong>上传进度</strong>
+                                        <div class="ms-auto">
+                                            <span id="progressText">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                                    </div>
+                                    <div id="uploadStatus" class="mt-2 text-muted">
+                                        准备上传...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let currentFilters = {
+            status: '',
+            task_type: '',
+            search: ''
+        };
+        let taskTypes = [];
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+        
+        // 初始化应用
+        async function initializeApp() {
+            try {
+                await loadTaskTypes();
+                await loadDashboardData();
+                setupEventListeners();
+                showSection('overview');
+            } catch (error) {
+                console.error('初始化失败:', error);
+                showAlert('系统初始化失败，请刷新页面重试', 'danger');
+            }
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 任务类型选择器
+            document.getElementById('taskTypeSelect').addEventListener('change', handleTaskTypeChange);
+            
+            // 单文件上传区域
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('drop', handleDrop);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // 多文件上传区域
+            setupMultiFileUpload();
+            
+            // 上传表单
+            document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+            
+            // 筛选器
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('typeFilter').addEventListener('change', applyFilters);
+            document.getElementById('searchInput').addEventListener('input', debounce(applyFilters, 500));
+        }
+        
+        // 设置多文件上传事件监听
+        function setupMultiFileUpload() {
+            // 第一个文件
+            const uploadArea1 = document.getElementById('uploadArea1');
+            const fileInput1 = document.getElementById('fileInput1');
+            
+            uploadArea1.addEventListener('click', () => fileInput1.click());
+            uploadArea1.addEventListener('dragover', handleDragOver);
+            uploadArea1.addEventListener('drop', (e) => handleDropMultiple(e, 1));
+            uploadArea1.addEventListener('dragleave', handleDragLeave);
+            
+            fileInput1.addEventListener('change', (e) => handleFileSelectMultiple(e, 1));
+            
+            // 第二个文件
+            const uploadArea2 = document.getElementById('uploadArea2');
+            const fileInput2 = document.getElementById('fileInput2');
+            
+            uploadArea2.addEventListener('click', () => fileInput2.click());
+            uploadArea2.addEventListener('dragover', handleDragOver);
+            uploadArea2.addEventListener('drop', (e) => handleDropMultiple(e, 2));
+            uploadArea2.addEventListener('dragleave', handleDragLeave);
+            
+            fileInput2.addEventListener('change', (e) => handleFileSelectMultiple(e, 2));
+        }
+        
+        // 处理任务类型变化
+        function handleTaskTypeChange(e) {
+            const taskType = e.target.value;
+            const singleFileUpload = document.getElementById('singleFileUpload');
+            const multipleFileUpload = document.getElementById('multipleFileUpload');
+            
+            if (taskType === 'standard_comparison') {
+                // 标准对比使用多文件上传
+                singleFileUpload.style.display = 'none';
+                multipleFileUpload.style.display = 'block';
+            } else {
+                // 其他任务类型使用单文件上传
+                singleFileUpload.style.display = 'block';
+                multipleFileUpload.style.display = 'none';
+            }
+            
+            // 清除所有文件选择
+            clearAllFiles();
+        }
+        
+        // 加载任务类型
+        async function loadTaskTypes() {
+            try {
+                const response = await apiRequest('/api/tasks/types', 'GET');
+                if (response.success) {
+                    taskTypes = response.data.task_types;
+                    populateTaskTypeSelects();
+                    populateTaskTypesNavigation();
+                }
+            } catch (error) {
+                console.error('加载任务类型失败:', error);
+            }
+        }
+        
+        // 填充任务类型选择器
+        function populateTaskTypeSelects() {
+            const taskTypeSelect = document.getElementById('taskTypeSelect');
+            const typeFilter = document.getElementById('typeFilter');
+            
+            taskTypes.forEach(type => {
+                const option1 = new Option(type.name, type.key);
+                const option2 = new Option(type.name, type.key);
+                taskTypeSelect.appendChild(option1);
+                typeFilter.appendChild(option2);
+            });
+        }
+        
+        // 填充任务类型导航
+        function populateTaskTypesNavigation() {
+            const taskTypesList = document.getElementById('taskTypesList');
+            taskTypesList.innerHTML = '';
+            
+            taskTypes.forEach(type => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.innerHTML = `
+                    <a class="nav-link" href="#" onclick="filterByType('${type.key}')">
+                        <i class="bi bi-tag me-2"></i>${type.name}
+                    </a>
+                `;
+                taskTypesList.appendChild(li);
+            });
+        }
+        
+        // 加载仪表板数据
+        async function loadDashboardData() {
+            try {
+                const response = await apiRequest('/api/tasks/dashboard', 'GET');
+                if (response.success) {
+                    updateDashboardStats(response.data);
+                }
+                
+                // 加载最近任务
+                const tasksResponse = await apiRequest('/api/tasks?per_page=5', 'GET');
+                if (tasksResponse.success) {
+                    displayRecentTasks(tasksResponse.data.tasks);
+                }
+            } catch (error) {
+                console.error('加载仪表板数据失败:', error);
+            }
+        }
+        
+        // 更新仪表板统计
+        function updateDashboardStats(data) {
+            document.getElementById('totalTasks').textContent = data.total_tasks || 0;
+            document.getElementById('completedTasks').textContent = data.status_stats.completed || 0;
+            document.getElementById('processingTasks').textContent = (data.status_stats.processing || 0) + (data.status_stats.uploading || 0);
+            document.getElementById('failedTasks').textContent = data.status_stats.failed || 0;
+        }
+        
+        // 显示最近任务
+        function displayRecentTasks(tasks) {
+            const container = document.getElementById('recentTasksList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-clipboard"></i>
+                        <p>暂无任务</p>
+                        <button class="btn btn-primary" onclick="showSection('upload')">创建第一个任务</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = tasks.map(task => `
+                <div class="border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${task.title}</h6>
+                            <p class="mb-1 text-muted">${task.task_type_display}</p>
+                            <small class="text-muted">${formatDateTime(task.created_at)}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="status-badge status-${task.status}">${task.status_display}</span>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="viewTaskDetail('${task.id}')">
+                                    查看详情
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 加载任务列表
+        async function loadTasks(page = 1) {
+            try {
+                const params = new URLSearchParams({
+                    page: page,
+                    per_page: 10,
+                    ...currentFilters
+                });
+                
+                const response = await apiRequest(`/api/tasks?${params}`, 'GET');
+                if (response.success) {
+                    displayTasks(response.data.tasks);
+                    displayPagination(response.data.pagination);
+                    currentPage = page;
+                }
+            } catch (error) {
+                console.error('加载任务列表失败:', error);
+                showAlert('加载任务列表失败', 'danger');
+            }
+        }
+        
+        // 显示任务列表
+        function displayTasks(tasks) {
+            const container = document.getElementById('tasksList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-clipboard"></i>
+                        <p>没有找到符合条件的任务</p>
+                        <button class="btn btn-primary" onclick="showSection('upload')">创建新任务</button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = tasks.map(task => `
+                <div class="card task-card mb-3">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="card-title mb-2">${task.title}</h5>
+                                <p class="card-text text-muted mb-2">${task.task_type_display}</p>
+                                <div class="d-flex align-items-center gap-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar me-1"></i>
+                                        ${formatDateTime(task.created_at)}
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="bi bi-file-earmark me-1"></i>
+                                        ${task.file_count} 个文件
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="mb-2">
+                                    <span class="status-badge status-${task.status}">${task.status_display}</span>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="viewTaskDetail('${task.id}')">
+                                        <i class="bi bi-eye me-1"></i>查看
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteTask('${task.id}')">
+                                        <i class="bi bi-trash me-1"></i>删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 显示分页
+        function displayPagination(pagination) {
+            const container = document.getElementById('pagination');
+            
+            if (pagination.pages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = '<ul class="pagination justify-content-center">';
+            
+            // 上一页
+            if (pagination.has_prev) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${pagination.page - 1})">上一页</a></li>`;
+            }
+            
+            // 页码
+            for (let i = Math.max(1, pagination.page - 2); i <= Math.min(pagination.pages, pagination.page + 2); i++) {
+                const active = i === pagination.page ? 'active' : '';
+                paginationHtml += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="loadTasks(${i})">${i}</a></li>`;
+            }
+            
+            // 下一页
+            if (pagination.has_next) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadTasks(${pagination.page + 1})">下一页</a></li>`;
+            }
+            
+            paginationHtml += '</ul>';
+            container.innerHTML = paginationHtml;
+        }
+        
+        // 文件拖拽处理
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+        
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('fileInput').files = files;
+                handleFileSelect({ target: { files } });
+            }
+        }
+        
+        // 文件选择处理
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 显示文件信息
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo').style.display = 'block';
+        }
+        
+        // 多文件选择处理
+        function handleFileSelectMultiple(e, fileIndex) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 显示文件信息
+            document.getElementById(`fileName${fileIndex}`).textContent = file.name;
+            document.getElementById(`fileSize${fileIndex}`).textContent = formatFileSize(file.size);
+            document.getElementById(`fileInfo${fileIndex}`).style.display = 'block';
+        }
+        
+        // 多文件拖拽处理
+        function handleDropMultiple(e, fileIndex) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById(`fileInput${fileIndex}`).files = files;
+                handleFileSelectMultiple({ target: { files } }, fileIndex);
+            }
+        }
+        
+        // 清除文件
+        function clearFile() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+        }
+        
+        // 清除单个多文件
+        function clearFile1() {
+            document.getElementById('fileInput1').value = '';
+            document.getElementById('fileInfo1').style.display = 'none';
+        }
+        
+        function clearFile2() {
+            document.getElementById('fileInput2').value = '';
+            document.getElementById('fileInfo2').style.display = 'none';
+        }
+        
+        // 清除所有文件
+        function clearAllFiles() {
+            clearFile();
+            clearFile1();
+            clearFile2();
+        }
+        
+        // 重置表单
+        function resetForm() {
+            document.getElementById('uploadForm').reset();
+            clearAllFiles();
+            hideUploadProgress();
+            
+            // 重置上传区域显示
+            const singleFileUpload = document.getElementById('singleFileUpload');
+            const multipleFileUpload = document.getElementById('multipleFileUpload');
+            singleFileUpload.style.display = 'block';
+            multipleFileUpload.style.display = 'none';
+        }
+        
+        // 文件上传处理
+        async function handleUpload(e) {
+            e.preventDefault();
+            
+            const taskType = document.getElementById('taskTypeSelect').value;
+            
+            if (!taskType) {
+                showAlert('请选择任务类型', 'warning');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('task_type', taskType);
+            
+            if (taskType === 'standard_comparison') {
+                // 标准对比：使用多文件上传
+                const fileInput1 = document.getElementById('fileInput1');
+                const fileInput2 = document.getElementById('fileInput2');
+                
+                if (!fileInput1.files[0] || !fileInput2.files[0]) {
+                    showAlert('标准对比任务需要上传两个文件', 'warning');
+                    return;
+                }
+                
+                formData.append('file1', fileInput1.files[0]);
+                formData.append('file2', fileInput2.files[0]);
+                
+                try {
+                    showUploadProgress();
+                    updateUploadStatus('正在上传两个文件...');
+                    
+                    const response = await fetch('/api/tasks/upload-multiple', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        },
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        updateUploadProgress(100);
+                        updateUploadStatus(`上传成功！已上传${result.data.total_files}个文件，正在跳转到任务详情...`);
+                        
+                        setTimeout(() => {
+                            window.location.href = `task_detail.html?id=${result.data.task.id}`;
+                        }, 1500);
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    console.error('多文件上传失败:', error);
+                    updateUploadStatus(`上传失败: ${error.message}`);
+                    showAlert(error.message, 'danger');
+                }
+            } else {
+                // 其他任务类型：使用单文件上传
+                const fileInput = document.getElementById('fileInput');
+                
+                if (!fileInput.files[0]) {
+                    showAlert('请选择要上传的文件', 'warning');
+                    return;
+                }
+                
+                formData.append('file', fileInput.files[0]);
+                
+                try {
+                    showUploadProgress();
+                    updateUploadStatus('正在上传文件...');
+                    
+                    const response = await fetch('/api/tasks/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        },
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        updateUploadProgress(100);
+                        updateUploadStatus('上传成功！正在跳转到任务详情...');
+                        
+                        setTimeout(() => {
+                            window.location.href = `task_detail.html?id=${result.data.task.id}`;
+                        }, 1500);
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    console.error('上传失败:', error);
+                    updateUploadStatus(`上传失败: ${error.message}`);
+                    showAlert(error.message, 'danger');
+                }
+            }
+        }
+        
+        // 显示上传进度
+        function showUploadProgress() {
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadBtn').disabled = true;
+        }
+        
+        // 隐藏上传进度
+        function hideUploadProgress() {
+            document.getElementById('uploadProgress').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = false;
+        }
+        
+        // 更新上传进度
+        function updateUploadProgress(percent) {
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `${percent}%`;
+        }
+        
+        // 更新上传状态
+        function updateUploadStatus(status) {
+            document.getElementById('uploadStatus').textContent = status;
+        }
+        
+        // 应用筛选器
+        function applyFilters() {
+            currentFilters.status = document.getElementById('statusFilter').value;
+            currentFilters.task_type = document.getElementById('typeFilter').value;
+            currentFilters.search = document.getElementById('searchInput').value;
+            
+            loadTasks(1);
+        }
+        
+        // 按类型筛选
+        function filterByType(taskType) {
+            document.getElementById('typeFilter').value = taskType;
+            currentFilters.task_type = taskType;
+            showSection('tasks');
+            loadTasks(1);
+        }
+        
+        // 查看任务详情
+        function viewTaskDetail(taskId) {
+            window.location.href = `task_detail.html?id=${taskId}`;
+        }
+        
+        // 删除任务
+        async function deleteTask(taskId) {
+            if (!confirm('确定要删除这个任务吗？此操作不可恢复。')) {
+                return;
+            }
+            
+            try {
+                const response = await apiRequest(`/api/tasks/${taskId}`, 'DELETE');
+                if (response.success) {
+                    showAlert('任务删除成功', 'success');
+                    loadTasks(currentPage);
+                    loadDashboardData(); // 刷新统计数据
+                } else {
+                    throw new Error(response.message);
+                }
+            } catch (error) {
+                console.error('删除任务失败:', error);
+                showAlert(error.message, 'danger');
+            }
+        }
+        
+        // 显示不同部分
+        function showSection(section) {
+            // 隐藏所有部分
+            document.querySelectorAll('[id$="-section"]').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // 显示选中的部分
+            document.getElementById(`${section}-section`).style.display = 'block';
+            
+            // 更新导航状态
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // 加载对应数据
+            if (section === 'tasks') {
+                loadTasks(1);
+            } else if (section === 'overview') {
+                loadDashboardData();
+            }
+        }
+        
+        // 刷新数据
+        function refreshData() {
+            loadDashboardData();
+            if (document.getElementById('tasks-section').style.display !== 'none') {
+                loadTasks(currentPage);
+            }
+        }
+        
+        // 工具函数
+        function formatDateTime(dateString) {
+            return new Date(dateString).toLocaleString('zh-CN');
+        }
+        
+        function formatFileSize(bytes) {
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        function showAlert(message, type = 'info') {
+            // 创建提示框
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // 自动移除
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 5000);
+        }
+        
+        // API请求封装
+        async function apiRequest(url, method = 'GET', data = null) {
+            const token = localStorage.getItem('access_token');
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (response.status === 401) {
+                    // Token过期，跳转到登录页
+                    window.location.href = '/auth.html';
+                    return;
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API请求失败:', error);
+                throw error;
+            }
+        }
+    </script>
+</body>
+</html>

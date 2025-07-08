@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理系统 - API测试</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 用户管理系统 API 测试</h1>
+            <p>测试用户注册、登录、登出等功能</p>
+        </header>
+
+        <!-- 状态显示区域 -->
+        <div class="status-section">
+            <div class="status-card">
+                <h3>🔗 连接状态</h3>
+                <div id="connection-status" class="status-indicator">未连接</div>
+                <button onclick="testConnection()" class="btn btn-secondary">测试连接</button>
+            </div>
+            <div class="status-card">
+                <h3>👤 登录状态</h3>
+                <div id="login-status" class="status-indicator">未登录</div>
+                <div id="user-info" class="user-info" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- API测试区域 -->
+        <div class="api-section">
+            <!-- 用户注册 -->
+            <div class="api-card">
+                <h3>📝 用户注册</h3>
+                <form id="register-form" class="api-form">
+                    <div class="form-group">
+                        <label for="reg-username">用户名 (可选):</label>
+                        <input type="text" id="reg-username" placeholder="3-20字符，字母数字下划线，可不填">
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">邮箱:</label>
+                        <input type="email" id="reg-email" placeholder="example@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">密码:</label>
+                        <input type="password" id="reg-password" placeholder="至少12位字符包含大小写字母数字和特殊字符" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">注册</button>
+                </form>
+                <div id="register-result" class="result-area"></div>
+            </div>
+
+            <!-- 用户登录 -->
+            <div class="api-card">
+                <h3>🔑 用户登录</h3>
+                <form id="login-form" class="api-form">
+                    <div class="form-group">
+                        <label for="login-credential">用户名/邮箱:</label>
+                        <input type="text" id="login-credential" placeholder="用户名或邮箱" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">密码:</label>
+                        <input type="password" id="login-password" placeholder="密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </form>
+                <div id="login-result" class="result-area"></div>
+            </div>
+
+            <!-- 获取用户信息 -->
+            <div class="api-card">
+                <h3>👤 获取用户信息</h3>
+                <p class="description">需要先登录获取token</p>
+                <button onclick="getUserProfile()" class="btn btn-info">获取用户信息</button>
+                <div id="profile-result" class="result-area"></div>
+            </div>
+
+            <!-- Token验证 -->
+            <div class="api-card">
+                <h3>🔍 验证Token</h3>
+                <p class="description">验证当前token是否有效</p>
+                <button onclick="verifyToken()" class="btn btn-info">验证Token</button>
+                <div id="verify-result" class="result-area"></div>
+            </div>
+
+            <!-- 用户登出 -->
+            <div class="api-card">
+                <h3>🚪 用户登出</h3>
+                <p class="description">撤销当前token</p>
+                <button onclick="logout()" class="btn btn-warning">登出</button>
+                <div id="logout-result" class="result-area"></div>
+            </div>
+
+            <!-- 忘记密码 -->
+            <div class="api-card">
+                <h3>🔐 忘记密码</h3>
+                <p class="description">通过邮箱获取密码重置令牌</p>
+                <form id="forgot-password-form" class="api-form">
+                    <div class="form-group">
+                        <label for="forgot-email">邮箱:</label>
+                        <input type="email" id="forgot-email" placeholder="注册时使用的邮箱" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning">获取重置令牌</button>
+                </form>
+                <div id="forgot-password-result" class="result-area"></div>
+            </div>
+
+            <!-- 重置密码 -->
+            <div class="api-card">
+                <h3>🔄 重置密码</h3>
+                <p class="description">使用重置令牌设置新密码</p>
+                <form id="reset-password-form" class="api-form">
+                    <div class="form-group">
+                        <label for="reset-token">重置令牌:</label>
+                        <input type="text" id="reset-token" placeholder="从忘记密码接口获取的令牌" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">新密码:</label>
+                        <input type="password" id="new-password" placeholder="至少12位字符包含大小写字母数字和特殊字符" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">重置密码</button>
+                </form>
+                <div id="reset-password-result" class="result-area"></div>
+            </div>
+
+            <!-- 修改密码 -->
+            <div class="api-card">
+                <h3>🔧 修改密码</h3>
+                <p class="description">需要登录，修改当前用户密码</p>
+                <form id="change-password-form" class="api-form">
+                    <div class="form-group">
+                        <label for="current-password">当前密码:</label>
+                        <input type="password" id="current-password" placeholder="当前密码" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="change-new-password">新密码:</label>
+                        <input type="password" id="change-new-password" placeholder="至少12位字符包含大小写字母数字和特殊字符" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">修改密码</button>
+                </form>
+                <div id="change-password-result" class="result-area"></div>
+            </div>
+        </div>
+
+        <!-- 快速测试区域 -->
+        <div class="quick-test-section">
+            <h3>⚡ 快速测试</h3>
+            <div class="quick-test-buttons">
+                <button onclick="quickTest()" class="btn btn-success">一键测试所有功能</button>
+                <button onclick="clearAllResults()" class="btn btn-secondary">清空所有结果</button>
+                <button onclick="generateTestUser()" class="btn btn-info">生成测试用户数据</button>
+            </div>
+        </div>
+
+        <!-- 功能页面导航 -->
+        <div class="navigation-section">
+            <h3>🚀 功能测试页面</h3>
+            <div class="navigation-buttons">
+
+                <a href="dify_test.html" class="btn btn-secondary">🤖 Dify聊天测试</a>
+                <a href="debug.html" class="btn btn-warning">🔧 调试工具</a>
+            </div>
+        </div>
+
+        <!-- 日志区域 -->
+        <div class="log-section">
+            <h3>📋 操作日志</h3>
+            <div id="log-area" class="log-area"></div>
+            <button onclick="clearLogs()" class="btn btn-secondary">清空日志</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

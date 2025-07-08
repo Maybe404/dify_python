@@ -1,0 +1,24 @@
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-JWT-Extended==4.5.3
+Flask-Bcrypt==1.0.1
+Flask-CORS==4.0.0
+python-dotenv==1.0.0
+email-validator==2.0.0
+Werkzeug==2.3.7
+PyMySQL==1.1.0
+cryptography==41.0.7
+requests==2.31.0
+# Document processing dependencies
+PyPDF2==3.0.1
+python-docx==0.8.11
+Pillow==11.2.1
+reportlab==4.0.4
+openpyxl==3.1.5
+# Markdown processing dependencies
+markdown==3.5.1
+beautifulsoup4==4.12.2
+weasyprint==61.2
+# Neo4j graph database dependency
+neo4j==5.14.1
+ 
